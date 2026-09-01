@@ -1,9 +1,8 @@
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
-
-const getFullUrl = (url: string): string => {
+export const getApiUrl = (url: string): string => {
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url;
   }
+  const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
   if (!API_BASE_URL) return url;
 
   let cleanBase = API_BASE_URL;
@@ -16,7 +15,7 @@ const getFullUrl = (url: string): string => {
   return `${cleanBase}${cleanUrl}`;
 };
 
-const getAuthHeaders = (): Record<string, string> => {
+export const getAuthHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('pms_token') || localStorage.getItem('pms_access_token');
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -61,7 +60,7 @@ export const apiClient = {
     url: string,
     config?: { params?: Record<string, any>; responseType?: 'json' | 'blob' }
   ): Promise<{ data: T; status: number }> => {
-    let fullUrl = getFullUrl(url);
+    let fullUrl = getApiUrl(url);
     if (config?.params) {
       const searchParams = new URLSearchParams();
       Object.entries(config.params).forEach(([k, v]) => {
@@ -78,7 +77,7 @@ export const apiClient = {
   },
 
   post: async <T = any>(url: string, body?: any): Promise<{ data: T; status: number }> => {
-    const res = await fetch(getFullUrl(url), {
+    const res = await fetch(getApiUrl(url), {
       method: 'POST',
       headers: getAuthHeaders(),
       body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -87,7 +86,7 @@ export const apiClient = {
   },
 
   put: async <T = any>(url: string, body?: any): Promise<{ data: T; status: number }> => {
-    const res = await fetch(getFullUrl(url), {
+    const res = await fetch(getApiUrl(url), {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -96,7 +95,7 @@ export const apiClient = {
   },
 
   delete: async <T = any>(url: string): Promise<{ data: T; status: number }> => {
-    const res = await fetch(getFullUrl(url), {
+    const res = await fetch(getApiUrl(url), {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
