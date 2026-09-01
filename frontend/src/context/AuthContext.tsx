@@ -8,6 +8,8 @@ interface AuthContextType {
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
+  signIn: (session: any) => void;
+  signOut: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,9 +20,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const savedUser = localStorage.getItem('pms_user');
-    const token = localStorage.getItem('pms_token');
+    const token = localStorage.getItem('pms_token') || localStorage.getItem('pms_access_token');
     if (savedUser && token) {
-      setUser(JSON.parse(savedUser));
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch (e) {
+        localStorage.removeItem('pms_user');
+      }
     }
     setLoading(false);
   }, []);
@@ -29,7 +35,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       const response = await authApi.login(credentials);
-      localStorage.setItem('pms_token', response.token);
+      if (response.token) {
+        localStorage.setItem('pms_token', response.token);
+        localStorage.setItem('pms_access_token', response.token);
+      }
       localStorage.setItem('pms_user', JSON.stringify(response));
       setUser(response);
     } finally {
@@ -37,15 +46,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const signIn = (session: any) => {
+    if (session?.token) {
+      localStorage.setItem('pms_token', session.token);
+      localStorage.setItem('pms_access_token', session.token);
+    } else if (session?.accessToken) {
+      localStorage.setItem('pms_token', session.accessToken);
+      localStorage.setItem('pms_access_token', session.accessToken);
+    }
+    const userData = session?.user || session;
+    localStorage.setItem('pms_user', JSON.stringify(userData));
+    setUser(userData);
+  };
+
   const logout = () => {
     localStorage.removeItem('pms_token');
+    localStorage.removeItem('pms_access_token');
     localStorage.removeItem('pms_user');
     setUser(null);
     window.location.href = '/login';
   };
 
+  const signOut = () => {
+    logout();
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, isAuthenticated: !!user, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
